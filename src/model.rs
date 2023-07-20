@@ -41,7 +41,6 @@ pub mod model {
 
     impl Entry {
         pub fn new(path_buf: &PathBuf, root: &Path, hash: &String, size: u64, mod_timestamp: u64, now_timestamp: u64) -> Entry {
-
             Entry {
                 path: abspath_to_path(root, path_buf),
                 abspath: path_to_string(path_buf),
@@ -49,6 +48,19 @@ pub mod model {
                 dirname: path_to_string(path_buf.parent().unwrap()),
                 signature: String::from(hash),
                 size: size,
+                timestamp: mod_timestamp,
+                updated: now_timestamp,
+            }
+        }
+
+        pub fn new_simple(path: &str, abspath: &str, basename: &str, dirname: &str, signature: &str, size: u64, mod_timestamp: u64, now_timestamp: u64) -> Entry {
+            Entry {
+                path: String::from(path),
+                abspath: String::from(abspath),
+                basename: String::from(basename),
+                dirname: String::from(dirname),
+                signature: String::from(signature),
+                size,
                 timestamp: mod_timestamp,
                 updated: now_timestamp,
             }

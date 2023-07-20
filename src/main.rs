@@ -136,15 +136,6 @@ fn dupe(file: &Path) {
     let connection = Connection::open(file).unwrap();
     let database = Database::new(&connection);
 
-    let entries_in_file = database.get_count(Some(Which::First)).unwrap();
-    println!("Entries in file: {}", entries_in_file);
-
-    let size_in_bytes = database.get_size().unwrap();
-    let size_in_mb = size_in_bytes / 1000000;
-    println!("Total indexed file size: {} B ({} MB)", size_in_bytes, size_in_mb);
-
-    let average_file_size = size_in_bytes as f64 / entries_in_file as f64;
-    println!("Average file size: {} B ({} MB)", average_file_size, average_file_size / 1E6);
+    let dupes = database.find_dupes();
+    println!("Dupes: {:?}", dupes);
 }
-
-
