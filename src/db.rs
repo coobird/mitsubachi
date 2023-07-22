@@ -455,4 +455,57 @@ mod dupe_tests {
         assert_eq!(entry1.path, dupe_files.get(0).unwrap().path);
         assert_eq!(entry2.path, dupe_files.get(1).unwrap().path);
     }
+
+    #[test]
+    fn has_triple_dupes() {
+        let connection = Connection::open(":memory:").unwrap();
+        let database = Database::new(&connection);
+        database.init_for("/path/to", 1000, false).unwrap();
+
+        let entry1 = &Entry::new_simple(
+            "to/file1", "/path/to/file1", "file1", "/path/to", "00deadbeef", 100, 100, 100
+        );
+        let entry2 = &Entry::new_simple(
+            "to/file2", "/path/to/file2", "file2", "/path/to", "00deadbeef", 100, 100, 100
+        );
+        let entry3 = &Entry::new_simple(
+            "to/file3", "/path/to/file3", "file3", "/path/to", "00deadbeef", 100, 100, 100
+        );
+
+        database.add_entry(entry1);
+        database.add_entry(entry2);
+        database.add_entry(entry3);
+        assert_eq!(3, database.get_count(None).unwrap());
+
+        let dupe_files = database.find_dupes().unwrap();
+        assert_eq!(3, dupe_files.len());
+        assert_eq!(entry1.path, dupe_files.get(0).unwrap().path);
+        assert_eq!(entry2.path, dupe_files.get(1).unwrap().path);
+        assert_eq!(entry3.path, dupe_files.get(2).unwrap().path);
+    }
+
+    #[test]
+    fn has_no_dupes() {
+        let connection = Connection::open(":memory:").unwrap();
+        let database = Database::new(&connection);
+        database.init_for("/path/to", 1000, false).unwrap();
+
+        let entry1 = &Entry::new_simple(
+            "to/file1", "/path/to/file1", "file1", "/path/to", "00deadbeef", 100, 100, 100
+        );
+        let entry2 = &Entry::new_simple(
+            "to/file2", "/path/to/file2", "file2", "/path/to", "0000000000", 100, 100, 100
+        );
+        let entry3 = &Entry::new_simple(
+            "to/file3", "/path/to/file3", "file3", "/path/to", "00cafecafe", 100, 100, 100
+        );
+
+        database.add_entry(entry1);
+        database.add_entry(entry2);
+        database.add_entry(entry3);
+        assert_eq!(3, database.get_count(None).unwrap());
+
+        let dupe_files = database.find_dupes().unwrap();
+        assert_eq!(0, dupe_files.len());
+    }
 }
