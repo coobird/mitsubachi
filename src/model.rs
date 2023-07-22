@@ -53,6 +53,7 @@ pub mod model {
             }
         }
 
+        #[cfg(test)]
         pub fn new_simple(path: &str, abspath: &str, basename: &str, dirname: &str, signature: &str, size: u64, mod_timestamp: u64, now_timestamp: u64) -> Entry {
             Entry {
                 path: String::from(path),
