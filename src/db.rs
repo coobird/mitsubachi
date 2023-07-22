@@ -383,12 +383,17 @@ pub mod db {
             Ok(Vec::from_iter(entry_iter.map(|x| { x.unwrap() })))
         }
 
-        // TODO Return a Entry rather than a tuple.
-        pub fn find_dupes(&self) -> Result<Vec<(String, String)>> {
+        pub fn find_dupes(&self) -> Result<Vec<Entry>> {
             let mut statement = self.connection.prepare(
                 "SELECT
+                        path,
                         abspath,
-                        signature
+                        basename,
+                        dirname,
+                        signature,
+                        size,
+                        timestamp,
+                        updated
                     FROM entries
                     WHERE signature IN (
                         SELECT
@@ -398,17 +403,12 @@ pub mod db {
                         HAVING COUNT(*) > 1
                     )"
             )?;
-            let entry_iter = statement.query_map([], |row| {
-                let abspath = get_row_value(row, 0);
-                let signature = get_row_value(row, 1);
-                Ok((abspath, signature))
-            })?;
+            let entry_iter = statement.query_map([], ROW_TO_ENTRY)?;
 
             let mut dupe_files = Vec::new();
-
             for entry in entry_iter {
                 let entry = entry.unwrap();
-                dupe_files.push((entry.0.unwrap(), entry.1.unwrap()));
+                dupe_files.push(entry);
             }
 
             Ok(dupe_files)
@@ -424,31 +424,35 @@ pub mod db {
 }
 
 #[cfg(test)]
-mod tests {
+mod dupe_tests {
     use rusqlite::Connection;
     use crate::Database;
     use crate::model::model::Entry;
 
     #[test]
-    fn dupe_checks() {
+    fn has_dupes() {
         let connection = Connection::open(":memory:").unwrap();
         let database = Database::new(&connection);
         database.init_for("/path/to", 1000, false).unwrap();
 
-        database.add_entry(&Entry::new_simple(
+        let entry1 = &Entry::new_simple(
             "to/file1", "/path/to/file1", "file1", "/path/to", "00deadbeef", 100, 100, 100
-        ));
-        database.add_entry(&Entry::new_simple(
+        );
+        let entry2 = &Entry::new_simple(
             "to/file2", "/path/to/file2", "file2", "/path/to", "00deadbeef", 100, 100, 100
-        ));
-        database.add_entry(&Entry::new_simple(
+        );
+        let entry3 = &Entry::new_simple(
             "to/file3", "/path/to/file3", "file3", "/path/to", "00cafecafe", 100, 100, 100
-        ));
+        );
+
+        database.add_entry(entry1);
+        database.add_entry(entry2);
+        database.add_entry(entry3);
         assert_eq!(3, database.get_count(None).unwrap());
 
         let dupe_files = database.find_dupes().unwrap();
         assert_eq!(2, dupe_files.len());
-        assert_eq!("/path/to/file1", dupe_files.get(0).unwrap().0);
-        assert_eq!("/path/to/file2", dupe_files.get(1).unwrap().0)
+        assert_eq!(entry1.path, dupe_files.get(0).unwrap().path);
+        assert_eq!(entry2.path, dupe_files.get(1).unwrap().path);
     }
 }
