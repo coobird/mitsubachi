@@ -198,7 +198,7 @@ pub mod indexing {
             Ok(res) => res
         };
 
-        return Ok(hex_hash);
+        Ok(hex_hash)
     }
 }
 
