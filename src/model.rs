@@ -40,7 +40,7 @@ pub mod model {
                 basename: osstr_to_string(path_buf.file_name().unwrap()),
                 dirname: path_to_string(path_buf.parent().unwrap()),
                 signature: String::from(hash),
-                size: size,
+                size,
                 timestamp: mod_timestamp,
                 updated: now_timestamp,
             }
