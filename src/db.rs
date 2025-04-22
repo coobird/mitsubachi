@@ -51,7 +51,7 @@ pub mod db {
         pub fn init_for(&self, path: &str, now_timestamp: u64, no_sync: bool) -> Result<(), rusqlite::Error> {
             if no_sync {
                 eprintln!("Setting no sync to database.");
-                self.setup_pragma_diasble_sync();
+                self.setup_pragma_disable_sync();
             }
             self.create_metadata_table();
             if !self.has_metadata().unwrap() {
@@ -69,7 +69,7 @@ pub mod db {
             Ok(())
         }
 
-        pub fn setup_pragma_diasble_sync(&self) {
+        pub fn setup_pragma_disable_sync(&self) {
             match self.connection.execute("PRAGMA main.synchronous = OFF", []) {
                 Ok(0) => {},
                 Ok(updates) => {
