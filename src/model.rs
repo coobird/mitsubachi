@@ -15,14 +15,7 @@ pub mod model {
     }
 
     pub fn path_to_string(path: &Path) -> String {
-        match path.to_str() {
-            Some(any) => any.to_string(),
-            None => {
-                let lossy_path = path.to_string_lossy().to_string();
-                eprintln!("found path with non-UTF8 characters -> {}", lossy_path);
-                lossy_path
-            }
-        }
+        osstr_to_string(path.as_os_str())
     }
     pub fn osstr_to_string(osstr: &OsStr) -> String {
         match osstr.to_str() {
