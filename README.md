@@ -1,18 +1,30 @@
-Mitsubachi is a program to check for bit-rot or unsynchronized files in same directory structures in different places.
+# About Mitsubachi
+
+Mitsubachi is a simple program to check for bit-rot or unsynchronized files in same directory structures in different places.
+
+This program was created to check the contents of two copies of backup directories residing in different physical disks.
+(Copies created by `rsync`.)
 
 It uses a database to keep track of files and its signatures to detect differences in files.
+A difference can mean either there's been a change to the file -- whether an intentional update or some error like bit-rot.
 
-Database schema
+**Mitsubachi is not a substitute for a software and/or hardware solution, such as ZFS, that performs integrity checks on data.**
+See the **Limitations** section for more details.
 
-table - a table is created for each "root" of directory structure
-record - each record in the table is a file. directories are not included as records. symlinks are ... ignored? included?
+# Requirements
 
-* path (primary key) - the relative path from the "root"
-* basename - base file name of the file; see GNU `basename` command
-* dirname - base directory name of the file; see GNU `dirname` command
-* signature - a hash from the contents of the file
-* timestamp - modification timestamp of file.
-* updated - time this record was updated
+* SQLite
 
+# Limitations
 
-MIT license, as all libraries used are MIT.
+A major limitation is that Mitsubachi does not read the underlying storage directly. 
+Therefore, any discrepancies between actual storage and what's reported by the operating system (such as cache) could cause erroneous results.
+This also extends to memory errors (e.g. bit flips in DRAM) that could lead to erroneous results.
+
+In other words, **you are strongly advised not to use Mitsubachi as the sole tool for data integrity checks.**
+
+# License
+
+Mitsubachi is distributed under the terms of the MIT license.
+
+Refer to the `LICENSE` file for more details.
