@@ -74,7 +74,7 @@ pub mod indexing {
     }
 
     /// Find indexed files that no longer exist.
-    fn find_deleted_files(db: &Database, root_dir: &Path) -> Result<usize, rusqlite::Error> {
+    fn remove_deleted_files(db: &Database, root_dir: &Path) -> Result<usize, rusqlite::Error> {
         let paths = db.select_all_paths()?;
         let paths_in_db: HashSet<String> = HashSet::from_iter(paths);
 
@@ -121,7 +121,7 @@ pub mod indexing {
         db.init_for(root.to_str().unwrap(), now_timestamp, options.no_sync)?;
 
         let delete_count: i64 = match options.skip_delete_check {
-            false => find_deleted_files(&db, root_dir)? as i64,
+            false => remove_deleted_files(&db, root_dir)? as i64,
             true => {
                 eprintln!("Skipping removal of deleted files from index.");
                 -1
