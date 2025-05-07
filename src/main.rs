@@ -159,3 +159,9 @@ fn dupe(file: &Path) {
     let dupes = database.find_dupes();
     println!("Dupes: {:?}", dupes);
 }
+
+#[test]
+fn verify_cli() {
+    use clap::CommandFactory;
+    Cli::command().debug_assert();
+}
