@@ -29,7 +29,7 @@ use std::{fmt, fs, io};
     use std::sync::{Arc, Mutex};
     use std::sync::atomic::{AtomicU64, Ordering};
     use std::time::{Duration, SystemTime, UNIX_EPOCH};
-
+    use log::{debug, error, info, warn};
     use rusqlite::Connection;
     use sha2::{Digest, Sha256};
 
@@ -49,7 +49,7 @@ use std::{fmt, fs, io};
             let entries = match fs::read_dir(dir) {
                 Ok(any) => any,
                 Err(err) => {
-                    eprintln!("Error while attempting to read entries in {:?}! -> {}", dir, err);
+                    error!("Error while attempting to read entries in {:?}! -> {}", dir, err);
                     return Err(
                         IndexingError::ExecutionError(
                             err, format!("Error while attempting to read entries in {:?}!", dir)
@@ -59,13 +59,12 @@ use std::{fmt, fs, io};
             };
             for entry in entries {
                 if entry.is_err() {
-                    eprintln!("Error! -> {}", entry.err().unwrap());
+                    error!("Error! -> {}", entry.err().unwrap());
                     continue;
                 }
 
-                println!("terminate_at: {:?}, current: {:?}", terminate_at, SystemTime::now());
                 if terminate_at.is_some() && SystemTime::now() > terminate_at.unwrap() {
-                    eprintln!("timeout !! ");
+                    info!("Execution timed out.");
                     return Err(IndexingError::ExecutionTimeout);
                 }
 
@@ -88,8 +87,10 @@ use std::{fmt, fs, io};
     fn verify_root_path(path: &Path) -> &Path {
         let path_str = path.to_str().unwrap();
         if !path.exists() {
+            error!("Specified root directory does not exist: {}", path_str);
             panic!("Specified root directory does not exist: {}", path_str);
         } else if !path.is_dir() {
+            error!("Specified root directory does not exist: {}", path_str);
             panic!("Specified root directory is not a directory: {}", path_str);
         }
         path
@@ -110,16 +111,16 @@ use std::{fmt, fs, io};
 
         let _x = paths_on_disk.lock().unwrap().to_owned();
         let difference = paths_in_db.difference(&_x);
-        println!("found difference -> {:?}", difference);
+        info!("found difference -> {:?}", difference);
 
         let difference_as_paths = Vec::from_iter(difference.map(|x| -> String {
             abspath_to_path(root_dir, Path::new(x))
         }));
-        println!("difference as paths: {:?}", difference_as_paths);
+        info!("difference as paths: {:?}", difference_as_paths);
 
         let mut delete_count = 0;
         for path in difference_as_paths {
-            println!("Removing entry with key -> {}", path);
+            debug!("Removing entry with key -> {}", path);
             db.remove_entry(&path).unwrap();
             delete_count += 1;
         }
@@ -162,7 +163,7 @@ use std::{fmt, fs, io};
         let delete_count: i64 = match options.skip_delete_check {
             false => remove_deleted_files(&db, root_dir).unwrap() as i64,
             true => {
-                eprintln!("Skipping removal of deleted files from index.");
+                info!("Skipping removal of deleted files from index.");
                 -1
             },
         };
@@ -178,18 +179,18 @@ use std::{fmt, fs, io};
             match found_entry {
                 Ok(entry) => {
                     if is_newer_than_last_write(dir_entry, &entry) {
-                        println!("found, but file updated. -> {:?}", entry);
+                        debug!("found, but file updated. -> {:?}", entry);
                         match add_entry(&db, &root, &path_buf, dir_entry, now_timestamp) {
                             Ok(_) => {
                                 update_count.fetch_add(1, Ordering::Relaxed);
                             },
                             Err(any) => {
-                                eprintln!("Error occurred during processing {} -> {}", path_to_string(path_buf.as_path()), any);
+                                warn!("Error occurred during processing {} -> {}", path_to_string(path_buf.as_path()), any);
                                 error_count.fetch_add(1, Ordering::Relaxed);
                             }
                         };
                     } else {
-                        //println!("already found -> {:?}", entry);
+                        debug!("already found -> {:?}", entry);
                         skip_count.fetch_add(1, Ordering::Relaxed);
                     }
                 },
@@ -199,21 +200,25 @@ use std::{fmt, fs, io};
                             add_count.fetch_add(1, Ordering::Relaxed);
                         },
                         Err(any) => {
-                            eprintln!("Error occurred during processing {} -> {}", path_to_string(path_buf.as_path()), any);
+                            warn!("Error occurred during processing {} -> {}", path_to_string(path_buf.as_path()), any);
                             error_count.fetch_add(1, Ordering::Relaxed);
                         }
                     };
                 },
                 Err(_any) => {
+                    error!("Something went wrong! -> {:?}", key);
                     panic!("Something went wrong! -> {:?}", key);
                 }
             }
         };
-        if traverse(root, callback, Some(options)).is_err() {
-            eprintln!("Error occurred during processing.");
-        };
+        match traverse(root, callback, Some(options)) {
+            Ok(_) => { /* nothing to do */ }
+            Err(any) => {
+                warn!("Error occurred during processing. caused by: {}", any);
+            }
+        }
 
-        println!(
+        info!(
             "Added: {}, Updated: {}, Deleted: {}, Skipped: {}, Errors: {}.",
             add_count.into_inner(),
             update_count.into_inner(),
@@ -245,7 +250,7 @@ use std::{fmt, fs, io};
         let duration = SystemTime::now().duration_since(start_time).unwrap().as_micros();
         let processing_rate = size as f64 / duration as f64;
 
-        println!("Processed in {} ms @ {} MB/s, adding entry -> {:?}", duration / 1000, processing_rate, entry);
+        info!("Processed in {} ms @ {} MB/s, adding entry -> {:?}", duration / 1000, processing_rate, entry);
         db.add_entry(&entry);
 
         Ok(())

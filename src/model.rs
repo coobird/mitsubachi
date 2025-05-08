@@ -21,6 +21,7 @@
 pub mod model {
     use std::ffi::OsStr;
     use std::path::{Path, PathBuf};
+    use log::warn;
 
     #[derive(Debug)]
     pub struct Entry {
@@ -42,7 +43,7 @@ pub mod model {
             Some(any) => any.to_string(),
             None => {
                 let lossy_path = osstr.to_string_lossy().to_string();
-                eprintln!("found path with non-UTF8 characters -> {}", lossy_path);
+                warn!("found path with non-UTF8 characters -> {}", lossy_path);
                 lossy_path
             }
         }

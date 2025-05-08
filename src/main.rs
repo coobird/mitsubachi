@@ -22,6 +22,7 @@ extern crate core;
 
 use std::path::Path;
 use clap::{Parser, Subcommand};
+use log::info;
 use rusqlite::Connection;
 use crate::db::db::{Database, Which};
 
@@ -86,6 +87,9 @@ enum Commands {
 }
 
 fn main() {
+    use env_logger::Env;
+    env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
+    
     let cli = Cli::parse();
 
     match &cli.command {
@@ -121,21 +125,21 @@ fn compare(first: &String, second: &String) {
     let database = Database::new(&connection);
     database.bind_second(second);
 
-    println!("Files in first: {}", database.get_count(Some(Which::First)).unwrap());
-    println!("Files in second: {}", database.get_count(Some(Which::Second)).unwrap());
+    info!("Files in first: {}", database.get_count(Some(Which::First)).unwrap());
+    info!("Files in second: {}", database.get_count(Some(Which::Second)).unwrap());
 
     let missing_files = database.find_missing().unwrap();
     let missing_in_first = missing_files.0;
     let missing_in_second = missing_files.1;
-    println!("Missing in first ({}): {:?}", database.get_metadata(Some(Which::First)).unwrap().path, missing_in_first);
-    println!("Missing in second ({}): {:?}", database.get_metadata(Some(Which::Second)).unwrap().path, missing_in_second);
+    info!("Missing in first ({}): {:?}", database.get_metadata(Some(Which::First)).unwrap().path, missing_in_first);
+    info!("Missing in second ({}): {:?}", database.get_metadata(Some(Which::Second)).unwrap().path, missing_in_second);
 
-    println!("Differences:");
+    info!("Differences:");
     for entry in database.compare().unwrap() {
-        println!("{:?}", entry);
+        info!("{:?}", entry);
     }
 
-    println!("OK");
+    info!("OK");
 }
 
 fn stats(file: &Path) {
@@ -143,14 +147,14 @@ fn stats(file: &Path) {
     let database = Database::new(&connection);
 
     let entries_in_file = database.get_count(Some(Which::First)).unwrap();
-    println!("Entries in file: {}", entries_in_file);
+    info!("Entries in file: {}", entries_in_file);
 
     let size_in_bytes = database.get_size().unwrap();
     let size_in_mb = size_in_bytes / 1000000;
-    println!("Total indexed file size: {} B ({} MB)", size_in_bytes, size_in_mb);
+    info!("Total indexed file size: {} B ({} MB)", size_in_bytes, size_in_mb);
 
     let average_file_size = size_in_bytes as f64 / entries_in_file as f64;
-    println!("Average file size: {} B ({} MB)", average_file_size, average_file_size / 1E6);
+    info!("Average file size: {} B ({} MB)", average_file_size, average_file_size / 1E6);
 }
 
 fn dupe(file: &Path) {
@@ -158,7 +162,7 @@ fn dupe(file: &Path) {
     let database = Database::new(&connection);
 
     let dupes = database.find_dupes();
-    println!("Dupes: {:?}", dupes);
+    info!("Dupes: {:?}", dupes);
 }
 
 #[test]

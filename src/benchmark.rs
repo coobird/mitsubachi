@@ -20,14 +20,18 @@
 
 pub mod benchmark {
     use std::time::Instant;
+    use log::info;
     use sha2::Sha256;
     use sha2::Digest;
 
     pub fn benchmark() {
+        let size = 1024 * 1024 * 25;
         let times = 5;
+
+        info!("Performing SHA256 benchmark (size={}, times={})", size, times);
         let mut durations = Vec::new();
         for _ in 0 .. times {
-            let data = vec![0u8; 1024 * 1024 * 25];
+            let data = vec![0u8; size];
             let mut hasher = Sha256::new();
             let start_time = Instant::now();
             hasher.update(data);
@@ -35,12 +39,12 @@ pub mod benchmark {
             let duration = Instant::now().duration_since(start_time);
             durations.push(duration.as_micros());
         }
-        println!("durations: {:?}", durations);
+        info!("durations: {:?}", durations);
         // let option = durations.reduce(|accum: f64, item: u128| {
         //     accum + f64::from(item)
         // });
         let total: u128 = durations.iter().sum();
         let average_duration = total as f64 / times as f64;
-        println!("average: {} us", average_duration);
+        info!("average: {} us", average_duration);
     }
 }

@@ -8,8 +8,8 @@ sha2 = "0.10"           # MIT or Apache
 base16ct = "0.1.1"      # MIT or Apache
 rusqlite = "0.28.0"     # MIT
 clap = { version = "4.5.37", features = ["derive"] }    # MIT
-#log = "0.4.0"
-#env_logger = "0.9.0"
+log = "0.4.27"
+env_logger = "0.11.8"
 
 [profile.release]
 opt-level = 'z'

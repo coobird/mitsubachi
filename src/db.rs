@@ -21,6 +21,7 @@
 pub mod db {
     use std::fmt;
     use std::fmt::Formatter;
+    use log::{error, info};
     use rusqlite::{Connection, Row, Result};
     use model::Entry;
     use crate::model::model;
@@ -81,7 +82,7 @@ pub mod db {
 
         pub fn init_for(&self, path: &str, now_timestamp: u64, no_sync: bool) -> Result<(), rusqlite::Error> {
             if no_sync {
-                eprintln!("Setting no sync to database.");
+                info!("Setting no sync to database.");
                 self.setup_pragma_disable_sync();
             }
             self.create_metadata_table();
@@ -90,10 +91,11 @@ pub mod db {
             } else {
                 let metadata = self.get_metadata(None).unwrap();
                 if !metadata.path.eq(path) {
+                    error!("Existing database is for '{}', not '{}'", metadata.path, path);
                     panic!("Existing database is for '{}', not '{}'", metadata.path, path);
                 }
             }
-            println!("metadata path: {:?}", self.get_metadata(None)?);
+            info!("metadata path: {:?}", self.get_metadata(None)?);
 
             self.create_entries_table();
             self.create_entries_index();
@@ -104,9 +106,11 @@ pub mod db {
             match self.connection.execute("PRAGMA main.synchronous = OFF", []) {
                 Ok(0) => {},
                 Ok(updates) => {
-                    panic!("Unexpected number of changes when setting pragma: {}", updates)
+                    error!("Unexpected number of changes when setting pragma: {}", updates);
+                    panic!("Unexpected number of changes when setting pragma: {}", updates);
                 },
                 Err(why) => {
+                    error!("Could not set pragma -> {}", why);
                     panic!("Could not set pragma -> {}", why);
                 }
             }
@@ -116,9 +120,11 @@ pub mod db {
             match self.connection.execute("ATTACH ? AS second", [path]) {
                 Ok(0) => {},
                 Ok(updates) => {
-                    panic!("Unexpected number of changes attaching database: {}", updates)
+                    error!("Unexpected number of changes attaching database: {}", updates);
+                    panic!("Unexpected number of changes attaching database: {}", updates);
                 },
                 Err(why) => {
+                    error!("Could not attach database: {} due to {}", path, why);
                     panic!("Could not attach database: {} due to {}", path, why);
                 }
             }
@@ -134,10 +140,12 @@ pub mod db {
             ) {
                 Ok(0) => {},
                 Ok(updates) => {
-                    panic!("Unexpected number of changes during entries table creation: {}", updates)
+                    error!("Unexpected number of changes during entries table creation: {}", updates);
+                    panic!("Unexpected number of changes during entries table creation: {}", updates);
                 },
                 Err(why) => {
-                    panic!("Unexpected error during entries table creation: {}", why)
+                    error!("Unexpected error during entries table creation: {}", why);
+                    panic!("Unexpected error during entries table creation: {}", why);
                 }
             }
         }
