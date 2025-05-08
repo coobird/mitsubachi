@@ -214,7 +214,7 @@ use std::{fmt, fs, io};
         };
 
         println!(
-            "Added {}, Updated {}, Deleted {}, Skipped {}, Errors {}.",
+            "Added: {}, Updated: {}, Deleted: {}, Skipped: {}, Errors: {}.",
             add_count.into_inner(),
             update_count.into_inner(),
             delete_count,
