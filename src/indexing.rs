@@ -19,14 +19,16 @@
 // THE SOFTWARE.
 
 pub mod indexing {
-    use std::{fs, io};
+use std::{fmt, fs, io};
     use std::collections::HashSet;
+    use std::fmt::Formatter;
     use std::fs::DirEntry;
     use std::io::Error;
+    use std::ops::Add;
     use std::path::{Path, PathBuf};
     use std::sync::{Arc, Mutex};
     use std::sync::atomic::{AtomicU64, Ordering};
-    use std::time::{SystemTime, UNIX_EPOCH};
+    use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
     use rusqlite::Connection;
     use sha2::{Digest, Sha256};
@@ -34,13 +36,25 @@ pub mod indexing {
     use crate::db::db::{Database, DatabaseError};
     use crate::model::model::{abspath_to_path, Entry, path_to_string};
 
-    fn traverse(dir: &Path, callback: &dyn Fn(&DirEntry)) {
+    fn traverse(dir: &Path, callback: &dyn Fn(&DirEntry) -> (), options: Option<&IndexingOptions>) -> Result<(), IndexingError> {
+        let terminate_at: Option<SystemTime> = match options.is_some() {
+            true => match options.unwrap().duration.is_some() {
+                true => Some(SystemTime::now().add(Duration::from_secs(options.unwrap().duration.unwrap()))),
+                false => None
+            },
+            false => None
+        };
+
         if dir.is_dir() {
             let entries = match fs::read_dir(dir) {
                 Ok(any) => any,
                 Err(err) => {
                     eprintln!("Error while attempting to read entries in {:?}! -> {}", dir, err);
-                    return;
+                    return Err(
+                        IndexingError::ExecutionError(
+                            err, format!("Error while attempting to read entries in {:?}!", dir)
+                        )
+                    );
                 }
             };
             for entry in entries {
@@ -48,12 +62,19 @@ pub mod indexing {
                     eprintln!("Error! -> {}", entry.err().unwrap());
                     continue;
                 }
+
+                println!("terminate_at: {:?}, current: {:?}", terminate_at, SystemTime::now());
+                if terminate_at.is_some() && SystemTime::now() > terminate_at.unwrap() {
+                    eprintln!("timeout !! ");
+                    return Err(IndexingError::ExecutionTimeout);
+                }
+
                 let entry = entry.unwrap();
                 let path = entry.path();
                 if path.is_dir() {
-                    traverse(&path, callback);
+                    return traverse(&path, callback, options);
                 } else if path.is_file() {
-                    callback(&entry);
+                    callback(&entry)
                 } else if path.is_symlink() {
                     // skip symlinks?
                 } else {
@@ -61,6 +82,7 @@ pub mod indexing {
                 }
             }
         }
+        Ok(())
     }
 
     fn verify_root_path(path: &Path) -> &Path {
@@ -79,12 +101,12 @@ pub mod indexing {
         let paths_in_db: HashSet<String> = HashSet::from_iter(paths);
 
         let paths_on_disk: Arc<Mutex<HashSet<String>>> = Arc::new(Mutex::new(HashSet::new()));
-        let callback: &dyn Fn(&DirEntry) = &|dir_entry| {
+        let callback: &dyn Fn(&DirEntry) -> () = &|dir_entry| {
             let path_buf = dir_entry.path();
             let path = path_to_string(&path_buf);
             paths_on_disk.lock().unwrap().insert(path);
         };
-        traverse(root_dir, callback);
+        traverse(root_dir, callback, None);
 
         let _x = paths_on_disk.lock().unwrap().to_owned();
         let difference = paths_in_db.difference(&_x);
@@ -110,18 +132,35 @@ pub mod indexing {
         pub duration: Option<u64>,
         pub no_sync: bool,
     }
+    
+    #[derive(Debug)]
+    pub enum IndexingError {
+        ExecutionError(Error, String),
+        ExecutionTimeout,
+    }
 
-    pub fn index(output_file: &Path, root_dir: &Path, options: &IndexingOptions) -> Result<(), rusqlite::Error> {
+    impl fmt::Display for IndexingError {
+        fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+            match self {
+                IndexingError::ExecutionError(e, message) => write!(f, "Execution error: {} caused by: {}", message, e),
+                IndexingError::ExecutionTimeout => write!(f, "Execution timed out."),
+            }
+        }
+    }
+
+    impl std::error::Error for IndexingError {}
+
+    pub fn index(output_file: &Path, root_dir: &Path, options: &IndexingOptions) -> Result<(), Error> {
         let root = verify_root_path(root_dir);
 
         let now_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs();
 
         let connection = Connection::open(output_file).unwrap();
         let db = Database::new(&connection);
-        db.init_for(root.to_str().unwrap(), now_timestamp, options.no_sync)?;
+        db.init_for(root.to_str().unwrap(), now_timestamp, options.no_sync).unwrap();
 
         let delete_count: i64 = match options.skip_delete_check {
-            false => remove_deleted_files(&db, root_dir)? as i64,
+            false => remove_deleted_files(&db, root_dir).unwrap() as i64,
             true => {
                 eprintln!("Skipping removal of deleted files from index.");
                 -1
@@ -170,11 +209,17 @@ pub mod indexing {
                 }
             }
         };
-        traverse(root, callback);
+        if traverse(root, callback, Some(options)).is_err() {
+            eprintln!("Error occurred during processing.");
+        };
 
         println!(
-            "Added {}, Updated {}, Deleted {}, Skipped {}.",
-            add_count.into_inner(), update_count.into_inner(), delete_count, skip_count.into_inner()
+            "Added {}, Updated {}, Deleted {}, Skipped {}, Errors {}.",
+            add_count.into_inner(),
+            update_count.into_inner(),
+            delete_count,
+            skip_count.into_inner(),
+            error_count.into_inner()
         );
         Ok(())
     }

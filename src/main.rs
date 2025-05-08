@@ -90,6 +90,7 @@ fn main() {
 
     match &cli.command {
         Commands::Index { skip_delete_check, duration, no_sync, root, output_file } => {
+            // TODO handle IndexingError.
             index(
                 Path::new(output_file),
                 Path::new(root),
