@@ -264,7 +264,10 @@ use std::{fmt, fs, io};
 
         let mut hex_hash = [0u8; 64];
         let _res = match base16ct::lower::encode_str(&hash, &mut hex_hash) {
-            Err(why) => panic!("failed -> {}", why),
+            Err(why) => {
+                error!("Error occurred during stringifying the hash. Caused by {}", why);
+                panic!("Error occurred during stringifying the hash. Caused by {}", why);
+            },
             Ok(res) => res
         };
 
