@@ -196,7 +196,7 @@ use std::{fmt, fs, io};
                 Err(DatabaseError::EntryNotFound) => {
                     match add_entry(&db, &root, &path_buf, dir_entry, now_timestamp) {
                         Ok(_) => {
-                            update_count.fetch_add(1, Ordering::Relaxed);
+                            add_count.fetch_add(1, Ordering::Relaxed);
                         },
                         Err(any) => {
                             eprintln!("Error occurred during processing {} -> {}", path_to_string(path_buf.as_path()), any);
