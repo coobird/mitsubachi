@@ -19,6 +19,8 @@
 // THE SOFTWARE.
 
 pub mod db {
+    use std::fmt;
+    use std::fmt::Formatter;
     use rusqlite::{Connection, Row, Result};
     use model::Entry;
     use crate::model::model;
@@ -32,6 +34,15 @@ pub mod db {
         EntryNotFound,
         Unexpected,
     }
+
+    impl fmt::Display for DatabaseError {
+        fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+            // TODO implement proper error message.
+            write!(f, "{:?}", self)
+        }
+    }
+
+    impl std::error::Error for DatabaseError {}
 
     pub enum Which {
         First,
