@@ -28,3 +28,8 @@ In other words, **you are strongly advised not to use Mitsubachi as the sole too
 Mitsubachi is distributed under the terms of the MIT license.
 
 Refer to the `LICENSE` file for more details.
+
+# Appendix
+
+The name _Mitsubachi_ comes from the Japanese word for _honey bee_.
+Since this program "buzzes" around the file system and "collects" hashes, it's behavior is similar to honey bees collecting nectar.
