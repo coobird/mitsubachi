@@ -22,6 +22,7 @@ pub mod db {
     use std::fmt;
     use std::fmt::Formatter;
     use log::{error, info};
+    use multimap::MultiMap;
     use rusqlite::{Connection, Row, Result};
     use model::Entry;
     use crate::model::model;
@@ -422,7 +423,7 @@ pub mod db {
             Ok(Vec::from_iter(entry_iter.map(|x| { x.unwrap() })))
         }
 
-        pub fn find_dupes(&self) -> Result<Vec<Entry>> {
+        pub fn find_dupes(&self) -> Result<MultiMap<String, Entry>> {
             let mut statement = self.connection.prepare(
                 "SELECT
                         path,
@@ -440,14 +441,15 @@ pub mod db {
                         FROM entries
                         GROUP BY signature
                         HAVING COUNT(*) > 1
-                    )"
+                    )
+                    ORDER BY signature"
             )?;
             let entry_iter = statement.query_map([], ROW_TO_ENTRY)?;
 
-            let mut dupe_files = Vec::new();
+            let mut dupe_files = MultiMap::new();
             for entry in entry_iter {
-                let entry = entry.unwrap();
-                dupe_files.push(entry);
+                let entry = entry?;
+                dupe_files.insert(entry.signature.clone(), entry);
             }
 
             Ok(dupe_files)
@@ -491,8 +493,9 @@ mod dupe_tests {
 
         let dupe_files = database.find_dupes().unwrap();
         assert_eq!(2, dupe_files.len());
-        assert_eq!(entry1.path, dupe_files.get(0).unwrap().path);
-        assert_eq!(entry2.path, dupe_files.get(1).unwrap().path);
+        let entries = dupe_files.get_vec("00deadbeef").unwrap();
+        assert_eq!(entry1.path, entries.get(0).unwrap().path);
+        assert_eq!(entry2.path, entries.get(1).unwrap().path);
     }
 
     #[test]
@@ -518,9 +521,10 @@ mod dupe_tests {
 
         let dupe_files = database.find_dupes().unwrap();
         assert_eq!(3, dupe_files.len());
-        assert_eq!(entry1.path, dupe_files.get(0).unwrap().path);
-        assert_eq!(entry2.path, dupe_files.get(1).unwrap().path);
-        assert_eq!(entry3.path, dupe_files.get(2).unwrap().path);
+        let entries = dupe_files.get_vec("00deadbeef").unwrap();
+        assert_eq!(entry1.path, entries.get(0).unwrap().path);
+        assert_eq!(entry2.path, entries.get(1).unwrap().path);
+        assert_eq!(entry3.path, entries.get(2).unwrap().path);
     }
 
     #[test]

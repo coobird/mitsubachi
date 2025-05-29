@@ -7,6 +7,7 @@ edition = "2021"
 sha2 = "0.10"           # MIT or Apache
 base16ct = "0.1.1"      # MIT or Apache
 rusqlite = "0.28.0"     # MIT
+multimap = "0.10.1"     # MIT or Apache
 clap = { version = "4.5.37", features = ["derive"] }    # MIT
 log = "0.4.27"
 env_logger = "0.11.8"
