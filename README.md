@@ -11,6 +11,8 @@ A difference can mean either there's been a change to the file -- whether an int
 **Mitsubachi is not a substitute for a software and/or hardware solution, such as ZFS, that performs integrity checks on data.**
 See the **Limitations** section for more details.
 
+**USE AT YOUR OWN RISK.**
+
 # Requirements
 
 * SQLite
