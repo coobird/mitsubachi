@@ -352,6 +352,12 @@ pub mod db {
             Ok(Vec::from_iter(result_iter))
         }
 
+        /// Compares the first and second databases to find any files missing in either one.
+        ///
+        /// Returns a tuple of missing paths in each respective database.
+        ///
+        /// Paths included in the first vector are ones that exists in the second database, but not
+        /// in the first database, and vice versa for the second vector.
         pub fn find_missing(&self) -> Result<(Vec<String>, Vec<String>)> {
             let mut statement = self.connection.prepare(
                 "SELECT
@@ -391,6 +397,7 @@ pub mod db {
             Ok((missing_in_first, missing_in_second))
         }
 
+        /// Compares and finds files with the same path, but differing file content hashes.
         pub fn compare(&self) -> Result<Vec<(String, String, String, u64, String, String, u64)>> {
             let mut statement = self.connection.prepare(
                 "SELECT
@@ -423,6 +430,9 @@ pub mod db {
             Ok(Vec::from_iter(entry_iter.map(|x| { x.unwrap() })))
         }
 
+        /// Find possible duplicate files in the index.
+        /// 
+        /// Returns groups of files with the same hash/signature in a multimap, where the key is the signature and values are the index entries.
         pub fn find_dupes(&self) -> Result<MultiMap<String, Entry>> {
             let mut statement = self.connection.prepare(
                 "SELECT

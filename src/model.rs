@@ -25,13 +25,22 @@ pub mod model {
 
     #[derive(Debug)]
     pub struct Entry {
+        /// Relative path of the file.
         pub path: String,
+        /// Absolute path of the file.
         pub abspath: String,
+        /// Base name, essentially, the file name.
         pub basename: String,
+        /// Directory name of the file.
         pub dirname: String,
+        /// SHA-256 signature of the file contents.
         pub signature: String,
+        /// File size.
         pub size: u64,
+        /// Timestamp of the file.
+        /// This should be the modification time (i.e., mtime).
         pub timestamp: u64,
+        /// The time this entry has been updated.
         pub updated: u64,
     }
 

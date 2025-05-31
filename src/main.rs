@@ -77,7 +77,7 @@ enum Commands {
         #[clap(value_name = "DATABASE_FILE")]
         file: String
     },
-    /// Get stats for database file.
+    /// Get statistics for database file.
     Stats {
         #[clap(value_name = "DATABASE_FILE")]
         file: String
