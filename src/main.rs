@@ -22,7 +22,7 @@ extern crate core;
 
 use std::path::Path;
 use clap::{Parser, Subcommand};
-use log::info;
+use log::{info, LevelFilter};
 use rusqlite::Connection;
 use crate::db::db::{Database, Which};
 
@@ -35,6 +35,10 @@ use crate::indexing::indexing::{index, IndexingOptions};
 #[derive(Parser)]
 #[clap(author, version, about)]
 struct Cli {
+    /// Disable log output
+    #[clap(short = 'q', long, action, default_value_t = false)]
+    quiet: bool,
+
     #[clap(subcommand)]
     command: Commands,
 }
@@ -87,10 +91,14 @@ enum Commands {
 }
 
 fn main() {
-    use env_logger::Env;
-    env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
-    
     let cli = Cli::parse();
+
+    use env_logger::Env;
+    if cli.quiet == true {
+        env_logger::Builder::new().filter_level(LevelFilter::Off).init();
+    } else {
+        env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
+    }
 
     match &cli.command {
         Commands::Index { skip_delete_check, duration, no_sync, root, output_file } => {
